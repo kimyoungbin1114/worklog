@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a56db">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="업무일지">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<title>업무일지</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --accent:#1a56db;--accent-dark:#1344b8;--accent-light:#e8f0fe;
+  --bg:#f8f9fa;--surface:#fff;--surface2:#f1f3f5;
+  --text:#1a1a1a;--text2:#555;--text3:#999;
+  --border:#e0e0e0;--border2:#ccc;
+  --danger:#e53e3e;--danger-bg:#fff5f5;
+  --radius:10px;--shadow:0 1px 4px rgba(0,0,0,.1);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+
+/* ── Header ── */
+.header{position:sticky;top:0;z-index:50;background:var(--accent);color:#fff;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.header h1{font-size:16px;font-weight:600}
+.header-btns{display:flex;gap:6px}
+.icon-btn{background:rgba(255,255,255,.2);border:none;color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.icon-btn:active{background:rgba(255,255,255,.35)}
+
+/* ── Calendar ── */
+.cal-wrap{background:var(--accent);padding:0 12px 14px;user-select:none}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 10px;color:#fff}
+.cal-nav button{background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.cal-nav button:active{background:rgba(255,255,255,.35)}
+.cal-nav span{font-size:15px;font-weight:600;color:#fff}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{text-align:center;font-size:10px;font-weight:600;color:rgba(255,255,255,.65);padding-bottom:4px}
+.cal-dow:first-child{color:#fca5a5}
+.cal-dow:last-child{color:#93c5fd}
+.cal-cell{position:relative;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:4px;border-radius:8px;cursor:pointer;transition:background .12s}
+.cal-cell:hover{background:rgba(255,255,255,.15)}
+.cal-cell.today .cal-num{background:#fff;color:var(--accent);font-weight:700;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-cell.selected{background:rgba(255,255,255,.25)}
+.cal-cell.other-month .cal-num{opacity:.35}
+.cal-num{font-size:12px;color:#fff;line-height:1;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-cell.sun .cal-num{color:#fca5a5}
+.cal-cell.sat .cal-num{color:#93c5fd}
+.cal-dots{display:flex;gap:2px;margin-top:2px;flex-wrap:wrap;justify-content:center;max-width:28px}
+.cal-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.7);flex-shrink:0}
+.cal-bell{font-size:9px;line-height:1;margin-top:1px}
+
+/* ── Day preview tooltip ── */
+.day-preview{background:var(--surface);border-radius:12px;margin:0 12px;box-shadow:0 4px 20px rgba(0,0,0,.15);overflow:hidden;transform:scaleY(0);transform-origin:top;transition:transform .2s cubic-bezier(.4,0,.2,1),opacity .2s;opacity:0;max-height:0}
+.day-preview.open{transform:scaleY(1);opacity:1;max-height:300px}
+.dp-header{padding:10px 14px 6px;display:flex;align-items:center;justify-content:space-between}
+.dp-date{font-size:13px;font-weight:600;color:var(--accent)}
+.dp-count{font-size:11px;color:var(--text3)}
+.dp-list{padding:0 14px 10px;display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto}
+.dp-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg);border-radius:8px;cursor:pointer;transition:background .12s}
+.dp-item:active{background:var(--accent-light)}
+.dp-vendor{font-size:11px;font-weight:600;color:var(--accent);flex-shrink:0}
+.dp-work{font-size:12px;color:var(--text);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dp-empty{padding:12px 14px;font-size:12px;color:var(--text3);text-align:center}
+.dp-add{margin:0 14px 10px;padding:7px;background:var(--accent-light);color:var(--accent);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:calc(100% - 28px);font-family:inherit}
+.dp-add:active{background:#c7d9fd}
+
+/* ── Tabs ── */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:10px;text-align:center;font-size:13px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-weight:500}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── Filter bar ── */
+.filter-bar{padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:8px}
+.filter-bar input{flex:1;padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none}
+.filter-bar input:focus{border-color:var(--accent)}
+.filter-bar select{padding:7px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none}
+
+/* ── Stats ── */
+.stats-bar{padding:7px 14px;display:flex;gap:10px;align-items:center;background:var(--surface);border-bottom:1px solid var(--border)}
+.stat-chip{font-size:11px;color:var(--text3);background:var(--surface2);padding:3px 9px;border-radius:99px}
+.stat-chip span{color:var(--accent);font-weight:600}
+
+/* ── List ── */
+.list{padding:10px 14px;display:flex;flex-direction:column;gap:10px;padding-bottom:80px}
+
+/* ── Card ── */
+.card{background:var(--surface);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--border)}
+.card.highlight{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-light)}
+.card-header{padding:11px 13px 7px;display:flex;align-items:flex-start;gap:8px}
+.date-badge{background:var(--accent-light);color:var(--accent);font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.vendor{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.card-work{padding:0 13px 7px;font-size:13px;color:var(--text);line-height:1.6}
+.card-note{padding:0 13px 9px}
+.note-text{font-size:12px;color:var(--text2);background:var(--surface2);padding:5px 9px;border-radius:6px;line-height:1.5;border-left:3px solid var(--accent-light)}
+.photo-strip{padding:0 13px 9px;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
+.photo-strip::-webkit-scrollbar{display:none}
+.photo-thumb{width:58px;height:58px;flex-shrink:0;border-radius:7px;object-fit:cover;border:1px solid var(--border);cursor:pointer}
+.photo-thumb:active{opacity:.7}
+.photo-more{width:58px;height:58px;flex-shrink:0;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);cursor:pointer;font-weight:600}
+.add-photo-btn{width:58px;height:58px;flex-shrink:0;border-radius:7px;border:2px dashed var(--border2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column;gap:2px;color:var(--text3)}
+.add-photo-btn span{font-size:20px;line-height:1}
+.add-photo-btn p{font-size:10px}
+.add-photo-btn:active{background:var(--surface2)}
+.card-actions{padding:7px 13px 11px;display:flex;gap:6px;border-top:1px solid var(--border)}
+.card-btn{flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit}
+.card-btn:active{background:var(--surface2)}
+.card-btn.del{color:var(--danger);border-color:#fecaca}
+.card-btn.del:active{background:var(--danger-bg)}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:22px;right:18px;z-index:50;width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(26,86,219,.4);display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.fab:active{transform:scale(.93)}
+
+/* ── Bottom Sheet ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100}
+.overlay.open{display:block}
+.sheet{position:fixed;bottom:0;left:0;right:0;z-index:101;background:var(--surface);border-radius:20px 20px 0 0;max-height:93vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:11px auto 0}
+.sheet-header{padding:14px 18px 11px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.sheet-header h2{font-size:15px;font-weight:600}
+.sheet-close{background:var(--surface2);border:none;width:28px;height:28px;border-radius:50%;font-size:15px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.sheet-body{padding:14px 18px 36px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field textarea{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;transition:border-color .15s}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:76px;line-height:1.6}
+.upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:18px;text-align:center;cursor:pointer;background:var(--bg);position:relative}
+.upload-zone:active,.upload-zone.drag{background:var(--accent-light);border-color:var(--accent)}
+.upload-zone input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.upload-zone .uz-icon{font-size:28px;margin-bottom:5px}
+.upload-zone p{font-size:13px;color:var(--text2)}
+.upload-zone small{font-size:11px;color:var(--text3)}
+.preview-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}
+.prev-item{position:relative;aspect-ratio:1}
+.prev-item img{width:100%;height:100%;object-fit:cover;border-radius:7px;border:1px solid var(--border)}
+.prev-del{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--danger);color:#fff;border:2px solid #fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.save-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px}
+.save-btn:active{background:var(--accent-dark)}
+
+/* ── Lightbox ── */
+.lightbox{display:none;position:fixed;inset:0;background:#000;z-index:200;flex-direction:column;align-items:center;justify-content:center}
+.lightbox.open{display:flex}
+.lb-img-wrap{flex:1;display:flex;align-items:center;justify-content:center;width:100%;position:relative}
+.lb-img-wrap img{max-width:100%;max-height:100%;object-fit:contain;user-select:none}
+.lb-top{position:absolute;top:0;left:0;right:0;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent)}
+.lb-top span{color:rgba(255,255,255,.8);font-size:13px}
+.lb-close{background:rgba(255,255,255,.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb-nav.prev{left:12px}.lb-nav.next{right:12px}
+.lb-thumbs{padding:10px 16px 20px;display:flex;gap:6px;overflow-x:auto;width:100%;scrollbar-width:none}
+.lb-thumbs::-webkit-scrollbar{display:none}
+.lb-t{width:50px;height:50px;flex-shrink:0;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;opacity:.55;transition:all .15s}
+.lb-t.active{border-color:#fff;opacity:1}
+
+/* ── Misc ── */
+.empty{text-align:center;padding:50px 20px;color:var(--text3)}
+.empty .ei{font-size:44px;margin-bottom:10px}
+.toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:99px;font-size:13px;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:300}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.install-banner{background:var(--accent-light);border-bottom:1px solid #c3d4f8;padding:9px 14px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--accent)}
+.install-banner button{margin-left:auto;background:var(--accent);color:#fff;border:none;padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;font-weight:600}
+.install-banner .close-banner{background:none;padding:3px;font-size:15px;color:inherit}
+/* ── Alarm badge ── */
+.alarm-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap;flex-shrink:0;background:#fff3cd;color:#856404;border:1px solid #ffc107}
+.alarm-badge.today{background:#ffe0e0;color:#c0392b;border-color:#e74c3c;animation:pulse 1.5s infinite}
+.alarm-badge.past{background:var(--surface2);color:var(--text3);border-color:var(--border);text-decoration:line-through}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.drive-bar{padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:12px;border-bottom:1px solid var(--border)}
+.drive-bar.connected{background:#f0fff4;color:#276749}
+.drive-bar.disconnected{background:#fff8e1;color:#92400e}
+.drive-bar.syncing{background:var(--accent-light);color:var(--accent)}
+.drive-bar-icon{font-size:16px}
+.drive-bar-btn{margin-left:auto;padding:4px 12px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.drive-bar.connected .drive-bar-btn{background:#276749;color:#fff}
+.drive-bar.disconnected .drive-bar-btn{background:#d97706;color:#fff}
+/* ── Photo caption ── */
+.photo-item{display:flex;flex-direction:column;align-items:center;flex-shrink:0;gap:3px}
+.photo-caption{font-size:10px;color:var(--text2);text-align:center;max-width:58px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.prev-caption{width:100%;margin-top:4px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:11px;background:var(--bg);color:var(--text);outline:none;font-family:inherit}
+/* ── Share popup ── */
+.share-popup{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;justify-content:center}
+.share-box{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px 40px}
+.share-box h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.share-text{background:var(--surface2);border-radius:10px;padding:12px;font-size:13px;line-height:1.7;color:var(--text);margin-bottom:14px;white-space:pre-wrap;max-height:180px;overflow-y:auto}
+.share-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.share-btn{padding:12px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.share-btn.kakao{background:#FEE500;color:#3A1D1D}
+.share-btn.sms{background:#34C759;color:#fff}
+.share-btn.copy{background:var(--surface2);color:var(--text);grid-column:1/-1}
+.share-btn.cancel{background:var(--danger-bg);color:var(--danger);grid-column:1/-1}
+.vendor-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1.5px solid var(--accent);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;max-height:200px;overflow-y:auto;margin-top:2px}
+.vendor-option{padding:10px 14px;cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:0.5px solid var(--border)}
+.vendor-option:last-child{border-bottom:none}
+.vendor-option:active{background:var(--accent-light)}
+.vendor-option-name{font-size:13px;font-weight:600;color:var(--text)}
+.vendor-option-info{font-size:11px;color:var(--text3)}
+.vendor-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px}
+.vendor-card-info{flex:1}
+.vendor-card-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.vendor-card-detail{font-size:12px;color:var(--text2);line-height:1.6}
+.vendor-card-del{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0}
+/* ── Phone rows ── */
+.phone-row{display:flex;gap:6px;align-items:center}
+.phone-label-input{width:90px;flex-shrink:0;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;font-family:inherit}
+.phone-num-input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;font-family:inherit}
+.phone-del-btn{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0}
+.phone-del-btn:active{color:var(--danger)}
+</style>
+</head>
+<body>
+
+<div id="driveBar" style="display:none" class="drive-bar disconnected">
+  <span class="drive-bar-icon">☁️</span>
+  <span id="driveBarMsg">구글 드라이브 미연결</span>
+  <button class="drive-bar-btn" id="driveBarBtn" onclick="driveToggle()">연결</button>
+</div>
+<div id="installBanner" style="display:none" class="install-banner">
+  <span>📱 홈 화면에 추가해서 앱처럼 사용하세요!</span>
+  <button id="installBtn">설치</button>
+  <button class="close-banner" onclick="document.getElementById('installBanner').style.display='none'">✕</button>
+</div>
+
+<header class="header">
+  <h1>📋 업무 일지</h1>
+  <div class="header-btns">
+    <button class="icon-btn" id="driveBtn" onclick="driveToggle()" title="구글 드라이브 동기화">☁️</button>
+    <button class="icon-btn" onclick="openVendorMgr()" title="업체 관리">🏢</button>
+    <button class="icon-btn" onclick="exportCSV()" title="엑셀 내보내기">⬇</button>
+  </div>
+</header>
+
+<!-- ── Calendar ── -->
+<div class="cal-wrap">
+  <div class="cal-nav">
+    <button onclick="calMove(-1)">‹</button>
+    <span id="calTitle"></span>
+    <button onclick="calMove(1)">›</button>
+  </div>
+  <div class="cal-grid" id="calDow">
+    <div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
+    <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div>
+    <div class="cal-dow">토</div>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+
+<!-- Day preview -->
+<div class="day-preview" id="dayPreview">
+  <div class="dp-header">
+    <span class="dp-date" id="dpDate"></span>
+    <span class="dp-count" id="dpCount"></span>
+  </div>
+  <div class="dp-list" id="dpList"></div>
+  <button class="dp-add" id="dpAdd" onclick="addFromDay()">＋ 이 날 항목 추가</button>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" id="tabAll" onclick="switchTab('all')">전체 목록</div>
+  <div class="tab" id="tabSelected" onclick="switchTab('selected')">선택한 날</div>
+</div>
+
+<!-- Filter (전체 탭용) -->
+<div class="filter-bar" id="filterBar">
+  <input type="text" id="search" placeholder="🔍 거래처, 작업내용 검색" oninput="render()">
+  <select id="monthFilter" onchange="render()">
+    <option value="">전체</option>
+    <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+    <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+    <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+    <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+  </select>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-chip">총 <span id="totalCount">0</span>건</div>
+  <div class="stat-chip">사진 <span id="totalPhotos">0</span>장</div>
+  <div class="stat-chip" id="lastSaved" style="margin-left:auto"></div>
+</div>
+
+<div class="list" id="list"></div>
+<button class="fab" onclick="openSheet()">＋</button>
+
+<!-- Overlay + Sheet -->
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2 id="sheetTitle">새 항목 추가</h2>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="field"><label>날짜</label><input type="date" id="fDate"></div>
+    <div class="field">
+      <label>거래처</label>
+      <div style="position:relative">
+        <input type="text" id="fVendor" placeholder="업체명 입력 또는 선택" autocomplete="off" oninput="vendorAutoComplete(this.value)" onfocus="vendorAutoComplete(this.value)">
+        <div id="vendorDropdown" class="vendor-dropdown" style="display:none"></div>
+      </div>
+    </div>
+    <div class="field"><label>작업내용</label><textarea id="fWork" placeholder="작업 내용을 입력하세요" rows="3"></textarea></div>
+    <div class="field"><label>비고</label><textarea id="fNote" placeholder="비고 사항 (선택)" rows="2"></textarea></div>
+    <div class="field">
+      <label>사진 첨부</label>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" accept="image/*" multiple id="fileInput" onchange="handleFiles(event)" style="display:none">
+        <div class="uz-icon">📷</div>
+        <p>탭해서 사진 선택</p>
+        <small>여러 장 선택 가능 · Ctrl+V 붙여넣기 가능</small>
+      </div>
+      <div class="preview-grid" id="previewGrid"></div>
+    </div>
+    <div class="field">
+      <label>🔔 알림 날짜 <span style="font-weight:400;color:var(--text3)">(선택)</span></label>
+      <input type="date" id="fAlarm" placeholder="알림받을 날짜">
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">납품예정일 등 중요한 날짜를 설정하면 당일 알림을 받습니다</div>
+    </div>
+    <button class="save-btn" onclick="saveEntry()">저장하기</button>
+  </div>
+</div>
+
+<!-- Vendor Manager -->
+<div class="overlay" id="vendorOverlay" onclick="closeVendorMgr()"></div>
+<div class="sheet" id="vendorSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2>🏢 업체 관리</h2>
+    <button class="sheet-close" onclick="closeVendorMgr()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <!-- 검색 -->
+    <div style="margin-bottom:12px">
+      <input type="text" id="vendorSearch" placeholder="🔍 업체명 검색..." oninput="renderVendorList()" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg);color:var(--text);outline:none;font-family:inherit">
+    </div>
+    <!-- 새 업체 추가 버튼 -->
+    <button onclick="openVendorAdd()" style="width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:14px">＋ 새 업체 추가</button>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">등록된 업체 <span id="vendorCount">0</span>개</div>
+    <div id="vendorList" style="display:flex;flex-direction:column;gap:8px;padding-bottom:40px"></div>
+  </div>
+</div>
+
+<!-- Vendor Add Sheet -->
+<div class="overlay" id="vendorAddOverlay" onclick="closeVendorAdd()"></div>
+<div class="sheet" id="vendorAddSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2>🏢 새 업체 추가</h2>
+    <button class="sheet-close" onclick="closeVendorAdd()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="field"><label>업체명 *</label><input type="text" id="vName" placeholder="예: 신아정공"></div>
+    <div class="field"><label>주소</label><input type="text" id="vAddr" placeholder="주소 입력"></div>
+    <div class="field"><label>메모</label><input type="text" id="vMemo" placeholder="담당자명, 특이사항 등"></div>
+    <div class="field">
+      <label>연락처 <span style="font-weight:400;color:var(--text3)">(여러 개 추가 가능)</span></label>
+      <div id="vPhones" style="display:flex;flex-direction:column;gap:6px">
+        <div class="phone-row">
+          <input type="text" placeholder="이름/직책" class="phone-label-input">
+          <input type="tel" placeholder="010-0000-0000" class="phone-num-input">
+          <button onclick="removePhoneRow(this)" class="phone-del-btn">✕</button>
+        </div>
+      </div>
+      <button onclick="addPhoneRow()" style="margin-top:8px;width:100%;padding:8px;border:1.5px dashed var(--border2);border-radius:8px;background:transparent;color:var(--text3);font-size:13px;cursor:pointer;font-family:inherit">+ 연락처 추가</button>
+    </div>
+    <button class="save-btn" onclick="addVendor()">저장하기</button>
+  </div>
+</div>
+
+<!-- Vendor Detail Sheet -->
+<div class="overlay" id="vendorDetailOverlay" onclick="closeVendorDetail()"></div>
+<div class="sheet" id="vendorDetailSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2 id="vendorDetailTitle">업체 상세</h2>
+    <button class="sheet-close" onclick="closeVendorDetail()">✕</button>
+  </div>
+  <div class="sheet-body" id="vendorDetailBody"></div>
+</div>
+
+<!-- Vendor Edit Sheet -->
+<div class="overlay" id="vendorEditOverlay" onclick="closeVendorEdit()"></div>
+<div class="sheet" id="vendorEditSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2>✏️ 업체 수정</h2>
+    <button class="sheet-close" onclick="closeVendorEdit()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="field"><label>업체명</label><input type="text" id="evName"></div>
+    <div class="field"><label>주소</label><input type="text" id="evAddr"></div>
+    <div class="field"><label>메모</label><input type="text" id="evMemo"></div>
+    <div class="field">
+      <label>연락처</label>
+      <div id="evPhones" style="display:flex;flex-direction:column;gap:6px"></div>
+      <button onclick="addEditPhoneRow()" style="margin-top:8px;width:100%;padding:8px;border:1.5px dashed var(--border2);border-radius:8px;background:transparent;color:var(--text3);font-size:13px;cursor:pointer;font-family:inherit">+ 연락처 추가</button>
+    </div>
+    <button class="save-btn" onclick="saveVendorEdit()">저장하기</button>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lb-img-wrap">
+    <div class="lb-top">
+      <span id="lbCaption"></span>
+      <button class="lb-close" onclick="closeLightbox()">✕</button>
+    </div>
+    <img id="lbImg" src="" alt="사진">
+    <button class="lb-nav prev" onclick="lbNav(-1)">‹</button>
+    <button class="lb-nav next" onclick="lbNav(1)">›</button>
+  </div>
+  <div class="lb-thumbs" id="lbThumbs"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" accept="image/*" multiple id="quickFileInput" style="display:none" onchange="handleQuickFiles(event)">
+
+<script>
+const STORE = 'worklog_pwa_v2';
+let entries = [];
+let editId = null;
+let pendingImgs = [];
+let pendingCaptions = [];
+let lbImgs = [], lbIdx = 0;
+let quickTargetId = null;
+let deferredPrompt = null;
+
+// Calendar state
+let calYear, calMonth, selectedDate = null;
+let currentTab = 'all';
+
+// ── Init ──────────────────────────────────────────
+const today = new Date();
+calYear = today.getFullYear();
+calMonth = today.getMonth(); // 0-based
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') showToast('앱이 설치되었습니다!');
+  deferredPrompt = null;
+  document.getElementById('installBanner').style.display = 'none';
+});
+
+// Upload zone click
+document.getElementById('uploadZone').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+
+// ── Storage ───────────────────────────────────────
+function saveDataLocal() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify(entries));
+    localStorage.setItem('worklog_local_savedAt', Date.now().toString());
+    const now = new Date();
+    const hm = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+    const el = document.getElementById('lastSaved');
+    if (el) el.textContent = '자동저장 ' + hm;
+  } catch(e) { showToast('저장 공간이 부족합니다'); }
+}
+function loadData() {
+  try {
+    const d = localStorage.getItem(STORE);
+    if (d) entries = JSON.parse(d); else prefill();
+  } catch(e) { prefill(); }
+}
+function prefill() {
+  entries = [
+    {id:1,date:'2025-05-20',vendor:'수테크',work:'CRC 유리탈착기 A롤러 견적금액',note:'',imgs:[]},
+    {id:2,date:'2025-06-05',vendor:'현대모터',work:'압축기 유니트용 60HP,50HP 견적 (벨하우징포함)',note:'',imgs:[]},
+    {id:3,date:'2025-06-12',vendor:'신아정공',work:'MECR 1~3호기 4호기 단차링 가공 발주',note:'마이너스 공차 변경',imgs:[]},
+    {id:4,date:'2025-06-17',vendor:'영테크',work:'CRC 스크래퍼 수정용 가공품 수령',note:'6월 27일 작업예정',imgs:[]},
+    {id:5,date:'2025-06-22',vendor:'신영폴리',work:'스크래퍼 축 2개 RS60 더블 잇수13 가공의뢰',note:'가공비 50600',imgs:[]},
+    {id:6,date:'2025-06-23',vendor:'시흥유통상가',work:'시흥유통상가 유턴시 사고/전기트럭 운전석 문제',note:'010-3685-0300 신우종합상사',imgs:[]},
+    {id:7,date:'2025-07-01',vendor:'MERC',work:'우레탄 4호기 사이드 실린더 +39번 브라켓 2개',note:'신아정공에 가공의뢰',imgs:[]},
+    {id:8,date:'2025-07-03',vendor:'신아정공',work:'플로탈 압축기 관련 가공품 제작 의뢰 (알루미늄)',note:'56번 상단부분 삭제',imgs:[]},
+    {id:9,date:'2025-07-06',vendor:'대화유공압',work:'금일 발송함 차후 merc 보낼것',note:'',imgs:[]},
+  ];
+  saveData();
+}
+
+// ── Calendar ──────────────────────────────────────
+function calMove(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderCal();
+  hideDayPreview();
+}
+
+function renderCal() {
+  document.getElementById('calTitle').textContent = `${calYear}년 ${calMonth+1}월`;
+  const grid = document.getElementById('calGrid');
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const lastDate = new Date(calYear, calMonth+1, 0).getDate();
+  const prevLast = new Date(calYear, calMonth, 0).getDate();
+
+  // Build date index for quick lookup
+  const dateMap = {};
+  const alarmMap = {};
+  entries.forEach(e => {
+    if (e.date) { dateMap[e.date] = (dateMap[e.date]||0)+1; }
+    if (e.alarm) { alarmMap[e.alarm] = (alarmMap[e.alarm]||0)+1; }
+  });
+
+  const todayStr = fmtDate(today);
+  let cells = '';
+  let total = firstDay + lastDate;
+  let rows = Math.ceil(total/7)*7;
+
+  for (let i=0; i<rows; i++) {
+    let d, mo = calMonth, yr = calYear, cls = '';
+    if (i < firstDay) {
+      d = prevLast - firstDay + 1 + i; mo = calMonth-1; if(mo<0){mo=11;yr--;}
+      cls = 'other-month';
+    } else if (i >= firstDay+lastDate) {
+      d = i - firstDay - lastDate + 1; mo = calMonth+1; if(mo>11){mo=0;yr++;}
+      cls = 'other-month';
+    } else {
+      d = i - firstDay + 1;
+    }
+    const dow = i % 7;
+    if (dow===0) cls += ' sun'; if (dow===6) cls += ' sat';
+    const dateStr = `${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if (dateStr === todayStr) cls += ' today';
+    if (dateStr === selectedDate) cls += ' selected';
+    const cnt = dateMap[dateStr] || 0;
+    const alarmCnt = alarmMap[dateStr] || 0;
+    const dots = cnt > 0 ? `<div class="cal-dots">${Array(Math.min(cnt,4)).fill('<div class="cal-dot"></div>').join('')}</div>` : '';
+    const bell = alarmCnt > 0 ? `<div class="cal-bell">🔔</div>` : '';
+    cells += `<div class="cal-cell ${cls}" data-date="${dateStr}" onclick="selectDate('${dateStr}')">`
+           + `<div class="cal-num">${d}</div>${dots}${bell}</div>`;
+  }
+  grid.innerHTML = cells;
+}
+
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function selectDate(dateStr) {
+  if (selectedDate === dateStr) {
+    // 같은 날 다시 탭 → 닫기
+    selectedDate = null;
+    hideDayPreview();
+    if (currentTab === 'selected') switchTab('all');
+    renderCal();
+    return;
+  }
+  selectedDate = dateStr;
+  renderCal();
+  showDayPreview(dateStr);
+  if (currentTab === 'selected') render();
+}
+
+function showDayPreview(dateStr) {
+  const [yr, mo, d] = dateStr.split('-');
+  document.getElementById('dpDate').textContent = `${parseInt(mo)}월 ${parseInt(d)}일`;
+  const dayEntries = entries.filter(e => e.date === dateStr);
+  document.getElementById('dpCount').textContent = dayEntries.length ? `${dayEntries.length}건` : '';
+
+  const list = document.getElementById('dpList');
+  if (!dayEntries.length) {
+    list.innerHTML = '<div class="dp-empty">이 날 등록된 업무가 없습니다</div>';
+  } else {
+    list.innerHTML = dayEntries.map(e =>
+      `<div class="dp-item" onclick="scrollToCard(${e.id}); switchTab('all')">
+        <span class="dp-vendor">${esc(e.vendor)}</span>
+        <span class="dp-work">${esc(e.work)}</span>
+      </div>`
+    ).join('');
+  }
+  // 이 날 알림이 걸린 항목도 표시
+  const alarmEntries = entries.filter(e => e.alarm === dateStr);
+  if(alarmEntries.length) {
+    list.innerHTML += `<div style="padding:6px 0 2px;font-size:11px;font-weight:600;color:#856404">🔔 이 날 알림</div>`
+      + alarmEntries.map(e =>
+        `<div class="dp-item" style="border-left:3px solid #ffc107" onclick="scrollToCard(${e.id}); switchTab('all')">
+          <span class="dp-vendor">${esc(e.vendor)}</span>
+          <span class="dp-work">${esc(e.work)}</span>
+        </div>`
+      ).join('');
+  }
+  document.getElementById('dayPreview').classList.add('open');
+}
+
+function hideDayPreview() {
+  document.getElementById('dayPreview').classList.remove('open');
+}
+
+function addFromDay() {
+  openSheet(null, selectedDate);
+}
+
+function scrollToCard(id) {
+  render();
+  setTimeout(() => {
+    const el = document.getElementById('card-'+id);
+    if (el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('highlight'); setTimeout(()=>el.classList.remove('highlight'),1500); }
+  }, 100);
+}
+
+// ── Tabs ──────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabAll').classList.toggle('active', tab==='all');
+  document.getElementById('tabSelected').classList.toggle('active', tab==='selected');
+  document.getElementById('filterBar').style.display = tab==='all' ? 'flex' : 'none';
+  render();
+}
+
+// ── Render ────────────────────────────────────────
+function render() {
+  let filtered;
+  if (currentTab === 'selected' && selectedDate) {
+    filtered = entries.filter(e => e.date === selectedDate);
+  } else {
+    const q = document.getElementById('search').value.toLowerCase();
+    const m = document.getElementById('monthFilter').value;
+    filtered = entries.filter(e => {
+      const mQ = !q || e.vendor.toLowerCase().includes(q) || e.work.toLowerCase().includes(q) || (e.note||'').toLowerCase().includes(q);
+      const mM = !m || (e.date && parseInt(e.date.split('-')[1]) === parseInt(m));
+      return mQ && mM;
+    });
+  }
+  filtered.sort((a,b) => a.date < b.date ? 1 : -1);
+
+  const totalPhotos = entries.reduce((s,e)=>s+(e.imgs||[]).length,0);
+  document.getElementById('totalCount').textContent = filtered.length;
+  document.getElementById('totalPhotos').textContent = totalPhotos;
+
+  const list = document.getElementById('list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty"><div class="ei">${currentTab==='selected'?'📅':'📭'}</div><p>${currentTab==='selected' && selectedDate ? '이 날 등록된 업무가 없습니다<br><br>' : '항목이 없습니다<br>'}</p></div>`;
+    if (currentTab==='selected' && selectedDate) {
+      list.innerHTML += `<div style="text-align:center"><button onclick="addFromDay()" style="background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit">＋ 이 날 항목 추가</button></div>`;
+    }
+    return;
+  }
+  list.innerHTML = filtered.map(e => {
+    const dp = e.date ? e.date.replace(/^\d{4}-/,'').replace('-','월 ')+'일' : '';
+    const imgs = e.imgs || [];
+    const captions = e.captions || [];
+    const photoHtml = `<div class="photo-strip">
+      ${imgs.slice(0,5).map((img,i)=>`
+        <div class="photo-item">
+          <img class="photo-thumb" src="${img}" alt="사진" onclick="openLightbox(${e.id},${i})" loading="lazy">
+          ${captions[i] ? `<div class="photo-caption">${esc(captions[i])}</div>` : ''}
+        </div>`).join('')}
+      ${imgs.length>5?`<div class="photo-more" onclick="openLightbox(${e.id},0)">+${imgs.length-5}</div>`:''}
+      <button class="add-photo-btn" onclick="quickPhoto(${e.id})"><span>📷</span><p>추가</p></button>
+    </div>`;
+    return `<div class="card" id="card-${e.id}">
+      <div class="card-header">
+        <div class="date-badge">${dp}</div>
+        <div class="vendor">${esc(e.vendor)}</div>
+        ${e.alarm ? `<div class="alarm-badge ${e.alarm === fmtDate(today) ? 'today' : e.alarm < fmtDate(today) ? 'past' : ''}">🔔 ${e.alarm.replace(/^\d{4}-/,'').replace('-','/')}</div>` : ''}
+      </div>
+      <div class="card-work">${esc(e.work)}</div>
+      ${e.note?`<div class="card-note"><div class="note-text">${esc(e.note)}</div></div>`:''}
+      ${photoHtml}
+      <div class="card-actions">
+        <button class="card-btn" onclick="editEntry(${e.id})">✏️ 수정</button>
+        <button class="card-btn" onclick="shareEntry(${e.id})">📤 공유</button>
+        <button class="card-btn del" onclick="deleteEntry(${e.id})">🗑 삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+
+// ── Sheet ─────────────────────────────────────────
+function openSheet(id, datePreset) {
+  editId = id||null; pendingImgs = []; pendingCaptions = [];
+  document.getElementById('sheetTitle').textContent = id ? '항목 수정' : '새 항목 추가';
+  if (id) {
+    const e = entries.find(x=>x.id===id);
+    document.getElementById('fDate').value = e.date;
+    document.getElementById('fVendor').value = e.vendor;
+    document.getElementById('fWork').value = e.work;
+    document.getElementById('fNote').value = e.note||'';
+    document.getElementById('fAlarm').value = e.alarm||'';
+    pendingImgs = [...(e.imgs||[])];
+    pendingCaptions = [...(e.captions||[])];
+  } else {
+    document.getElementById('fDate').value = datePreset || fmtDate(new Date());
+    document.getElementById('fVendor').value = '';
+    document.getElementById('fWork').value = '';
+    document.getElementById('fNote').value = '';
+    document.getElementById('fAlarm').value = '';
+  }
+  renderPreview();
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+}
+
+// ── 이미지 압축 (EXIF 회전 자동 보정) ───────────────
+function getExifOrientation(file){
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const view = new DataView(e.target.result);
+      if(view.getUint16(0, false) !== 0xFFD8){ resolve(1); return; }
+      const length = view.byteLength;
+      let offset = 2;
+      while(offset < length){
+        const marker = view.getUint16(offset, false);
+        offset += 2;
+        if(marker === 0xFFE1){
+          if(view.getUint32(offset += 2, false) !== 0x45786966){ resolve(1); return; }
+          const little = view.getUint16(offset += 6, false) === 0x4949;
+          offset += view.getUint32(offset + 4, little);
+          const tags = view.getUint16(offset, little);
+          offset += 2;
+          for(let i=0; i<tags; i++){
+            if(view.getUint16(offset+(i*12), little) === 0x0112){
+              resolve(view.getUint16(offset+(i*12)+8, little)); return;
+            }
+          }
+        } else if((marker & 0xFF00) !== 0xFF00) break;
+        else offset += view.getUint16(offset, false);
+      }
+      resolve(1);
+    };
+    reader.readAsArrayBuffer(file.slice(0, 64*1024));
+  });
+}
+
+function compressImage(file, maxWidth=1024, quality=0.7) {
+  return new Promise(async (resolve) => {
+    try {
+      const orientation = await getExifOrientation(file);
+      
+      const drawImage = (img) => {
+        const canvas = document.createElement('canvas');
+        let w = img.width || img.naturalWidth;
+        let h = img.height || img.naturalHeight;
+        
+        // 회전에 따라 가로세로 스왑
+        const needSwap = [5,6,7,8].includes(orientation);
+        let tw = needSwap ? h : w;
+        let th = needSwap ? w : h;
+        
+        if(tw > maxWidth || th > maxWidth){
+          if(tw > th){ th = Math.round(th*maxWidth/tw); tw = maxWidth; }
+          else{ tw = Math.round(tw*maxWidth/th); th = maxWidth; }
+        }
+        canvas.width = tw; canvas.height = th;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, tw, th);
+        
+        // EXIF 회전 보정
+        ctx.save();
+        switch(orientation){
+          case 2: ctx.transform(-1,0,0,1,tw,0); break;
+          case 3: ctx.transform(-1,0,0,-1,tw,th); break;
+          case 4: ctx.transform(1,0,0,-1,0,th); break;
+          case 5: ctx.transform(0,1,1,0,0,0); break;
+          case 6: ctx.transform(0,1,-1,0,th,0); break;
+          case 7: ctx.transform(0,-1,-1,0,th,tw); break;
+          case 8: ctx.transform(0,-1,1,0,0,tw); break;
+        }
+        ctx.drawImage(img, 0, 0, needSwap?th:tw, needSwap?tw:th);
+        ctx.restore();
+        
+        let result = canvas.toDataURL('image/jpeg', quality);
+        if(result.length > 2*1024*1024) result = canvas.toDataURL('image/jpeg', 0.5);
+        return result;
+      };
+
+      if(typeof createImageBitmap !== 'undefined'){
+        const bitmap = await createImageBitmap(file);
+        resolve(drawImage(bitmap));
+        bitmap.close();
+      } else {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => resolve(drawImage(img));
+          img.onerror = () => resolve(e.target.result);
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch(err) {
+      // 모든 방법 실패시 원본 그대로
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+function fallbackCompress(file, maxWidth, quality, resolve){
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if(w > maxWidth || h > maxWidth){
+        if(w > h){ h = Math.round(h*maxWidth/w); w = maxWidth; }
+        else{ w = Math.round(w*maxWidth/h); h = maxWidth; }
+      }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img, 0, 0, w, h);
+      let result = canvas.toDataURL('image/jpeg', quality);
+      if(result.length > 2*1024*1024) result = canvas.toDataURL('image/jpeg', 0.5);
+      resolve(result);
+    };
+    img.onerror = () => resolve(e.target.result);
+    img.src = e.target.result;
+  };
+  reader.onerror = () => resolve(null);
+  reader.readAsDataURL(file);
+}
+
+// ── File handling ─────────────────────────────────
+function handleFiles(ev) {
+  const files = Array.from(ev.target.files);
+  if(!files.length) return;
+  showToast(`📷 사진 ${files.length}장 압축 중...`);
+  let done = 0;
+  files.forEach((f, idx) => {
+    compressImage(f).then(compressed => {
+      pendingImgs.push(compressed);
+      pendingCaptions.push('');
+      done++;
+      if(done === files.length){
+        renderPreview();
+        showToast(`✅ ${files.length}장 추가됨`);
+      }
+    }).catch(() => {
+      // 압축 실패 시 FileReader로 직접 읽기
+      const r = new FileReader();
+      r.onload = e => {
+        pendingImgs.push(e.target.result);
+        pendingCaptions.push('');
+        done++;
+        if(done === files.length){
+          renderPreview();
+          showToast(`✅ ${files.length}장 추가됨`);
+        }
+      };
+      r.readAsDataURL(f);
+    });
+  });
+  ev.target.value='';
+}
+const uz=document.getElementById('uploadZone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
+uz.addEventListener('drop',e=>{
+  e.preventDefault();uz.classList.remove('drag');
+  Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')).forEach(f=>{
+    const r=new FileReader();r.onload=ev=>{pendingImgs.push(ev.target.result);renderPreview();};r.readAsDataURL(f);
+  });
+});
+function renderPreview(){
+  document.getElementById('previewGrid').innerHTML=pendingImgs.map((img,i)=>
+    `<div class="prev-item">
+      <img src="${img}" alt="" onclick="openImgPreview('${img}')">
+      <button class="prev-del" onclick="removePreview(${i})">✕</button>
+      <input class="prev-caption" type="text" placeholder="사진 설명" value="${(pendingCaptions[i]||'').replace(/"/g,'&quot;')}" oninput="pendingCaptions[${i}]=this.value">
+    </div>`
+  ).join('');
+}
+function removePreview(i){
+  pendingImgs.splice(i,1);
+  pendingCaptions.splice(i,1);
+  renderPreview();
+}
+
+function saveEntry(){
+  const date=document.getElementById('fDate').value;
+  const vendor=document.getElementById('fVendor').value.trim();
+  const work=document.getElementById('fWork').value.trim();
+  const note=document.getElementById('fNote').value.trim();
+  const alarm=document.getElementById('fAlarm').value;
+  if(!date||!work){showToast('날짜와 작업내용은 필수입니다');return;}
+  // 현재 캡션 입력값 수집
+  const captionInputs = document.querySelectorAll('.prev-caption');
+  const captions = Array.from(captionInputs).map(i=>i.value.trim());
+  if(editId){
+    const i=entries.findIndex(x=>x.id===editId);
+    entries[i]={id:editId,date,vendor,work,note,alarm,imgs:pendingImgs,captions};
+    showToast('수정되었습니다');
+  } else {
+    const newId=entries.length?Math.max(...entries.map(x=>x.id))+1:1;
+    entries.push({id:newId,date,vendor,work,note,alarm,imgs:pendingImgs,captions});
+    showToast('저장되었습니다');
+  }
+  saveData(); closeSheet(); renderCal(); render();
+  if(selectedDate===date) showDayPreview(date);
+}
+function editEntry(id){openSheet(id);}
+function deleteEntry(id){
+  if(!confirm('이 항목을 삭제할까요?'))return;
+  entries=entries.filter(x=>x.id!==id);
+  saveData(); renderCal(); render(); showToast('삭제되었습니다');
+  if(selectedDate) showDayPreview(selectedDate);
+}
+
+// Quick photo
+function quickPhoto(id){quickTargetId=id;document.getElementById('quickFileInput').click();}
+function handleQuickFiles(ev){
+  const entry=entries.find(x=>x.id===quickTargetId);
+  if(!entry)return; if(!entry.imgs)entry.imgs=[];
+  const files=Array.from(ev.target.files);
+  if(!files.length) return;
+  showToast(`📷 사진 ${files.length}장 압축 중...`);
+  let done=0;
+  files.forEach(f=>{
+    compressImage(f).then(compressed=>{
+      entry.imgs.push(compressed);
+      done++;
+      if(done===files.length){ saveData(); render(); showToast(`✅ 사진 ${files.length}장 추가됨`); }
+    }).catch(()=>{
+      const r=new FileReader();
+      r.onload=e=>{
+        entry.imgs.push(e.target.result);
+        done++;
+        if(done===files.length){ saveData(); render(); showToast(`✅ 사진 ${files.length}장 추가됨`); }
+      };
+      r.readAsDataURL(f);
+    });
+  });
+  ev.target.value='';
+}
+
+// ── Lightbox ──────────────────────────────────────
+function openLightbox(entryId,idx){
+  const e=entries.find(x=>x.id===entryId);
+  if(!e||!e.imgs||!e.imgs.length)return;
+  lbImgs=e.imgs;lbIdx=idx;updateLb();
+  document.getElementById('lightbox').classList.add('open');
+}
+function updateLb(){
+  const lbImg = document.getElementById('lbImg');
+  lbImg.style.display = 'none';
+  lbImg.onerror = () => {
+    lbImg.style.display = 'none';
+    document.getElementById('lbCaption').textContent = `이미지 로딩 실패 (${lbIdx+1}/${lbImgs.length})`;
+  };
+  lbImg.onload = () => { lbImg.style.display = 'block'; };
+  lbImg.src = lbImgs[lbIdx];
+  document.getElementById('lbCaption').textContent=`${lbIdx+1} / ${lbImgs.length}`;
+  document.getElementById('lbThumbs').innerHTML=lbImgs.map((img,i)=>
+    `<img class="lb-t ${i===lbIdx?'active':''}" src="${img}" onclick="lbGoTo(${i})" onerror="this.style.opacity='0.3'">`).join('');
+}
+function lbNav(d){lbIdx=(lbIdx+d+lbImgs.length)%lbImgs.length;updateLb();}
+function lbGoTo(i){lbIdx=i;updateLb();}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+let lbTouchX=null;
+document.getElementById('lightbox').addEventListener('touchstart',e=>{lbTouchX=e.touches[0].clientX;});
+document.getElementById('lightbox').addEventListener('touchend',e=>{
+  if(lbTouchX===null)return;
+  const dx=e.changedTouches[0].clientX-lbTouchX;
+  if(Math.abs(dx)>40)lbNav(dx<0?1:-1);
+  lbTouchX=null;
+});
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('lightbox').classList.contains('open'))return;
+  if(e.key==='ArrowLeft')lbNav(-1);if(e.key==='ArrowRight')lbNav(1);if(e.key==='Escape')closeLightbox();
+});
+
+// ── File save/load ────────────────────────────────
+function saveToFile(){
+  const data=JSON.stringify({version:1,savedAt:new Date().toISOString(),entries},null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='업무일지_'+fmtDate(new Date())+'.worklog';a.click();
+  URL.revokeObjectURL(url);showToast('💾 파일로 저장되었습니다');
+}
+function loadFromFile(ev){
+  const file=ev.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      const loaded=data.entries||data;
+      if(!Array.isArray(loaded))throw new Error();
+      if(!confirm(`저장된 항목 ${loaded.length}건을 불러올까요?\n현재 데이터는 덮어씌워집니다.`))return;
+      entries=loaded;saveData();renderCal();render();showToast(`📂 ${loaded.length}건 불러왔습니다`);
+    }catch{alert('올바른 .worklog 파일이 아닙니다.');}
+  };
+  reader.readAsText(file);ev.target.value='';
+}
+
+// ── CSV export ────────────────────────────────────
+function exportCSV(){
+  const rows=[['날짜','거래처','작업내용','비고','사진수']];
+  entries.forEach(e=>rows.push([e.date,e.vendor,e.work,e.note||'',(e.imgs||[]).length]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='업무일지_'+fmtDate(new Date())+'.csv';a.click();
+  URL.revokeObjectURL(url);showToast('CSV로 내보냈습니다');
+}
+
+// ── Toast ─────────────────────────────────────────
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── Google Drive 연동 ──────────────────────────────
+const GDRIVE_CLIENT_ID = '19569976343-rtqi91q0hav5tivork6fd6jsvp8fbf6f.apps.googleusercontent.com';
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const GDRIVE_FILENAME = '업무일지_데이터.worklog';
+let driveToken = null;
+let driveFileId = localStorage.getItem('worklog_drive_fileid') || null;
+let driveConnected = false;
+let driveClient = null;
+let tokenRefreshTimer = null;
+
+function driveToggle(){
+  if(driveConnected){ driveDisconnect(); }
+  else { driveLogin(); }
+}
+
+function driveLogin(){
+  setDriveBar('syncing','구글 로그인 중...');
+  driveClient = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPE,
+    prompt: '',
+    callback: async (resp) => {
+      if(resp.error){ setDriveBar('disconnected','로그인 실패'); showToast('구글 로그인 실패'); return; }
+      driveToken = resp.access_token;
+      driveConnected = true;
+      localStorage.setItem('worklog_drive_connected','1');
+      setDriveBar('connected','구글 드라이브 연결됨');
+      showToast('☁️ 구글 드라이브 연결됨');
+      // 50분마다 토큰 자동 갱신
+      if(tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+      tokenRefreshTimer = setInterval(() => {
+        driveClient.requestAccessToken();
+      }, 50 * 60 * 1000);
+      await driveSyncDown();
+    }
+  });
+  driveClient.requestAccessToken();
+}
+
+function driveDisconnect(){
+  if(!confirm('구글 드라이브 연결을 해제할까요?')) return;
+  if(driveToken) google.accounts.oauth2.revoke(driveToken);
+  if(tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+  driveToken = null; driveConnected = false;
+  localStorage.removeItem('worklog_drive_connected');
+  setDriveBar('disconnected','구글 드라이브 미연결');
+  document.getElementById('driveBtn').textContent = '☁️';
+  showToast('드라이브 연결 해제됨');
+}
+
+function setDriveBar(state, msg){
+  const bar = document.getElementById('driveBar');
+  const msgEl = document.getElementById('driveBarMsg');
+  const btn = document.getElementById('driveBarBtn');
+  bar.style.display = 'flex';
+  bar.className = 'drive-bar ' + state;
+  msgEl.textContent = msg;
+  if(state==='connected'){ btn.textContent='동기화'; btn.onclick=()=>driveSyncDown(true); }
+  else if(state==='disconnected'){ btn.textContent='연결'; btn.onclick=driveToggle; }
+  else { btn.textContent='...'; btn.onclick=null; }
+  document.getElementById('driveBtn').textContent = state==='connected' ? '🟢' : state==='syncing' ? '🔄' : '☁️';
+}
+
+// 스마트 병합 - 삭제 반영 + 데이터 보존
+function mergeEntries(local, remote){
+  // 둘 다 있는 id는 사진 많은 쪽 유지
+  // 한쪽에만 있는 건 추가
+  const localMap = {};
+  const remoteMap = {};
+  local.forEach(e => localMap[e.id] = e);
+  remote.forEach(e => remoteMap[e.id] = e);
+
+  const allIds = new Set([...Object.keys(localMap), ...Object.keys(remoteMap)]);
+  const result = [];
+  allIds.forEach(id => {
+    const l = localMap[id];
+    const r = remoteMap[id];
+    if(l && r){
+      // 둘 다 있으면 사진 많은 쪽 기준으로 병합
+      const merged = {...r, ...l};
+      if((r.imgs||[]).length > (l.imgs||[]).length) merged.imgs = r.imgs;
+      result.push(merged);
+    } else if(l && !r){
+      // 로컬에만 있음 → 추가
+      result.push(l);
+    } else if(!l && r){
+      // 원격에만 있음 → 추가
+      result.push(r);
+    }
+  });
+  return result.sort((a,b) => a.date < b.date ? 1 : -1);
+}
+
+function mergeVendors(local, remote){
+  const map = {};
+  local.forEach(v => { map[v.name] = v; });
+  remote.forEach(v => { if(!map[v.name]) map[v.name] = v; });
+  return Object.values(map);
+}
+
+// 드라이브에 저장 (업로드)
+async function driveSyncUp(){
+  if(!driveToken){ showToast('먼저 드라이브를 연결해주세요'); return; }
+  setDriveBar('syncing','저장 중...');
+  const content = JSON.stringify({
+    version:2,
+    savedAt: new Date().toISOString(),
+    entries,
+    vendors
+  });
+  const blob = new Blob([content],{type:'application/json'});
+  try{
+    if(driveFileId){
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{
+        method:'PATCH', headers:{'Authorization':'Bearer '+driveToken,'Content-Type':'application/json'}, body:blob
+      });
+    } else {
+      const meta = {name: GDRIVE_FILENAME, mimeType:'application/json'};
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)],{type:'application/json'}));
+      form.append('file', blob);
+      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+        method:'POST', headers:{'Authorization':'Bearer '+driveToken}, body:form
+      });
+      const data = await res.json();
+      driveFileId = data.id;
+      localStorage.setItem('worklog_drive_fileid', driveFileId);
+    }
+    const t = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    setDriveBar('connected','☁️ 저장됨 ' + t);
+    showToast('☁️ 드라이브에 저장됨');
+  } catch(e){
+    setDriveBar('connected','저장 실패 - 재시도');
+    showToast('드라이브 저장 실패');
+  }
+}
+
+// 드라이브에서 불러오기 - 최신 저장 시각 기준 우선
+async function driveSyncDown(isManual=false){
+  if(!driveToken) return;
+  setDriveBar('syncing', isManual ? '동기화 중...' : '드라이브 확인 중...');
+  try{
+    let fileId = driveFileId;
+    if(!fileId){
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FILENAME}'&spaces=drive`,{
+        headers:{'Authorization':'Bearer '+driveToken}
+      });
+      const data = await res.json();
+      if(data.files && data.files.length > 0){
+        fileId = data.files[0].id;
+        driveFileId = fileId;
+        localStorage.setItem('worklog_drive_fileid', fileId);
+      }
+    }
+    if(fileId){
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{
+        headers:{'Authorization':'Bearer '+driveToken}
+      });
+      const remote = await res.json();
+      const remoteEntries = remote.entries || [];
+      const remoteVendors = remote.vendors || [];
+      const remoteSavedAt = remote.savedAt ? new Date(remote.savedAt).getTime() : 0;
+      const localSavedAt = parseInt(localStorage.getItem('worklog_local_savedAt')||'0');
+
+      if(isManual){
+        // 수동 동기화: 드라이브 데이터를 그대로 적용 (최신 작업 기준)
+        entries = remoteEntries;
+        vendors = remoteVendors.length ? remoteVendors : vendors;
+        saveDataLocal();
+        saveVendorsLocal();
+        renderCal(); render(); renderVendorList();
+        setDriveBar('connected', `☁️ 동기화 완료 · ${entries.length}건`);
+        showToast(`☁️ 동기화 완료 - ${entries.length}건`);
+      } else {
+        // 자동 동기화 (로그인 시): 타임스탬프 비교
+        if(remoteSavedAt > localSavedAt){
+          // 드라이브가 더 최신 → 드라이브 데이터 적용
+          entries = remoteEntries;
+          vendors = remoteVendors.length ? remoteVendors : vendors;
+          saveDataLocal();
+          saveVendorsLocal();
+          renderCal(); render(); renderVendorList();
+          showToast(`☁️ 최신 데이터 불러옴 (${entries.length}건)`);
+        } else if(localSavedAt > remoteSavedAt){
+          // 로컬이 더 최신 → 로컬 데이터를 드라이브에 업로드
+          await driveSyncUp();
+          showToast(`☁️ 로컬 데이터 드라이브에 저장됨`);
+        } else {
+          showToast(`☁️ 이미 최신 상태`);
+        }
+        setDriveBar('connected', `☁️ 연결됨 · ${entries.length}건`);
+      }
+    } else {
+      // 드라이브에 파일 없음 → 로컬 데이터 업로드
+      setDriveBar('connected','☁️ 연결됨 (첫 저장)');
+      await driveSyncUp();
+    }
+  } catch(e){
+    setDriveBar('disconnected','동기화 실패');
+    showToast('동기화 실패 - 재시도 중...');
+    setTimeout(()=>driveSyncDown(isManual), 3000);
+  }
+}
+
+// 저장할 때 드라이브 자동 업로드
+function saveData(){
+  saveDataLocal();
+  if(driveConnected) driveSyncUp();
+}
+
+// ── 업체 관리 ──────────────────────────────────────
+const VENDOR_STORE = 'worklog_vendors_v1';
+let vendors = [];
+let editVendorName = null;
+
+function loadVendors(){
+  try{ vendors = JSON.parse(localStorage.getItem(VENDOR_STORE)||'[]'); }catch(e){ vendors=[]; }
+}
+function saveVendors(){
+  saveVendorsLocal();
+  if(driveConnected) driveSyncUp();
+}
+function saveVendorsLocal(){
+  localStorage.setItem(VENDOR_STORE, JSON.stringify(vendors));
+}
+
+// 업체 관리 메인 시트
+function openVendorMgr(){
+  document.getElementById('vendorSearch').value='';
+  renderVendorList();
+  document.getElementById('vendorOverlay').classList.add('open');
+  document.getElementById('vendorSheet').classList.add('open');
+}
+function closeVendorMgr(){
+  document.getElementById('vendorOverlay').classList.remove('open');
+  document.getElementById('vendorSheet').classList.remove('open');
+}
+
+// 업체 추가 시트
+function openVendorAdd(){
+  document.getElementById('vName').value='';
+  document.getElementById('vAddr').value='';
+  document.getElementById('vMemo').value='';
+  resetPhoneRows();
+  document.getElementById('vendorAddOverlay').classList.add('open');
+  document.getElementById('vendorAddSheet').classList.add('open');
+}
+function closeVendorAdd(){
+  document.getElementById('vendorAddOverlay').classList.remove('open');
+  document.getElementById('vendorAddSheet').classList.remove('open');
+}
+
+// 업체 상세 시트
+function openVendorDetail(name){
+  const v = vendors.find(x=>x.name===name);
+  if(!v) return;
+  document.getElementById('vendorDetailTitle').textContent = v.name;
+  const phones = (v.phones||[]).filter(p=>p.number);
+  document.getElementById('vendorDetailBody').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;padding-bottom:40px">
+      ${v.addr ? `
+        <div style="background:var(--surface2);border-radius:10px;padding:14px">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">📍 주소</div>
+          <div style="font-size:14px;color:var(--text)">${esc(v.addr)}</div>
+          <a href="https://map.kakao.com/?q=${encodeURIComponent(v.addr)}" target="_blank" style="display:inline-block;margin-top:8px;font-size:12px;color:var(--accent);text-decoration:none">지도 보기 →</a>
+        </div>` : ''}
+      ${phones.length ? `
+        <div style="background:var(--surface2);border-radius:10px;padding:14px">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">📞 연락처</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${phones.map(p=>`
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  ${p.label ? `<div style="font-size:11px;color:var(--text3)">${esc(p.label)}</div>` : ''}
+                  <div style="font-size:15px;font-weight:600;color:var(--text)">${esc(p.number)}</div>
+                </div>
+                <a href="tel:${p.number}" style="background:var(--accent);color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">📞 전화</a>
+              </div>`).join('<hr style="border:none;border-top:1px solid var(--border)">')}
+          </div>
+        </div>` : ''}
+      ${v.memo ? `
+        <div style="background:var(--surface2);border-radius:10px;padding:14px">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">📝 메모</div>
+          <div style="font-size:14px;color:var(--text)">${esc(v.memo)}</div>
+        </div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button onclick="closeVendorDetail();openVendorEdit('${name.replace(/'/g,"\\'")}');" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text)">✏️ 수정</button>
+        <button onclick="deleteVendor('${name.replace(/'/g,"\\'")}');closeVendorDetail();" style="flex:1;padding:12px;border-radius:10px;border:1px solid #fecaca;background:var(--danger-bg);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--danger)">🗑 삭제</button>
+      </div>
+    </div>`;
+  document.getElementById('vendorDetailOverlay').classList.add('open');
+  document.getElementById('vendorDetailSheet').classList.add('open');
+}
+function closeVendorDetail(){
+  document.getElementById('vendorDetailOverlay').classList.remove('open');
+  document.getElementById('vendorDetailSheet').classList.remove('open');
+}
+
+function resetPhoneRows(){
+  document.getElementById('vPhones').innerHTML = `
+    <div class="phone-row">
+      <input type="text" placeholder="이름/직책" class="phone-label-input">
+      <input type="tel" placeholder="010-0000-0000" class="phone-num-input">
+      <button onclick="removePhoneRow(this)" class="phone-del-btn">✕</button>
+    </div>`;
+}
+function addPhoneRow(){
+  const row = document.createElement('div');
+  row.className = 'phone-row';
+  row.innerHTML = `
+    <input type="text" placeholder="이름/직책" class="phone-label-input">
+    <input type="tel" placeholder="010-0000-0000" class="phone-num-input">
+    <button onclick="removePhoneRow(this)" class="phone-del-btn">✕</button>`;
+  document.getElementById('vPhones').appendChild(row);
+}
+function removePhoneRow(btn){
+  const rows = document.querySelectorAll('#vPhones .phone-row');
+  if(rows.length > 1) btn.closest('.phone-row').remove();
+  else { btn.closest('.phone-row').querySelector('.phone-label-input').value=''; btn.closest('.phone-row').querySelector('.phone-num-input').value=''; }
+}
+
+function getPhoneRows(containerId){
+  return Array.from(document.querySelectorAll(`#${containerId} .phone-row`))
+    .map(row=>({
+      label: row.querySelector('.phone-label-input').value.trim(),
+      number: row.querySelector('.phone-num-input').value.trim()
+    })).filter(p=>p.number);
+}
+
+function addVendor(){
+  const name = document.getElementById('vName').value.trim();
+  if(!name){ showToast('업체명을 입력해주세요'); return; }
+  if(vendors.find(v=>v.name===name)){ showToast('이미 등록된 업체입니다'); return; }
+  vendors.push({
+    name,
+    addr: document.getElementById('vAddr').value.trim(),
+    memo: document.getElementById('vMemo').value.trim(),
+    phones: getPhoneRows('vPhones')
+  });
+  saveVendors();
+  closeVendorAdd();
+  renderVendorList();
+  showToast(`✅ ${name} 추가됨`);
+}
+
+function deleteVendor(name){
+  if(!confirm(`"${name}" 업체를 삭제할까요?`)) return;
+  vendors = vendors.filter(v=>v.name!==name);
+  saveVendors(); renderVendorList(); showToast('삭제됨');
+}
+
+function openVendorEdit(name){
+  const v = vendors.find(x=>x.name===name);
+  if(!v) return;
+  editVendorName = name;
+  document.getElementById('evName').value = v.name;
+  document.getElementById('evAddr').value = v.addr||'';
+  document.getElementById('evMemo').value = v.memo||'';
+  const phones = v.phones||[];
+  const container = document.getElementById('evPhones');
+  container.innerHTML = '';
+  (phones.length ? phones : [{label:'',number:''}]).forEach(p=>{
+    const row = document.createElement('div');
+    row.className = 'phone-row';
+    row.innerHTML = `
+      <input type="text" placeholder="이름/직책" class="phone-label-input" value="${esc(p.label||'')}">
+      <input type="tel" placeholder="010-0000-0000" class="phone-num-input" value="${esc(p.number||'')}">
+      <button onclick="removeEditPhoneRow(this)" class="phone-del-btn">✕</button>`;
+    container.appendChild(row);
+  });
+  document.getElementById('vendorEditOverlay').classList.add('open');
+  document.getElementById('vendorEditSheet').classList.add('open');
+}
+function closeVendorEdit(){
+  document.getElementById('vendorEditOverlay').classList.remove('open');
+  document.getElementById('vendorEditSheet').classList.remove('open');
+}
+function addEditPhoneRow(){
+  const row = document.createElement('div');
+  row.className = 'phone-row';
+  row.innerHTML = `
+    <input type="text" placeholder="이름/직책" class="phone-label-input">
+    <input type="tel" placeholder="010-0000-0000" class="phone-num-input">
+    <button onclick="removeEditPhoneRow(this)" class="phone-del-btn">✕</button>`;
+  document.getElementById('evPhones').appendChild(row);
+}
+function removeEditPhoneRow(btn){
+  const rows = document.querySelectorAll('#evPhones .phone-row');
+  if(rows.length > 1) btn.closest('.phone-row').remove();
+  else { btn.closest('.phone-row').querySelector('.phone-label-input').value=''; btn.closest('.phone-row').querySelector('.phone-num-input').value=''; }
+}
+function saveVendorEdit(){
+  const newName = document.getElementById('evName').value.trim();
+  if(!newName){ showToast('업체명을 입력해주세요'); return; }
+  const idx = vendors.findIndex(v=>v.name===editVendorName);
+  if(idx<0) return;
+  vendors[idx] = {
+    name: newName,
+    addr: document.getElementById('evAddr').value.trim(),
+    memo: document.getElementById('evMemo').value.trim(),
+    phones: getPhoneRows('evPhones')
+  };
+  saveVendors(); closeVendorEdit(); renderVendorList();
+  showToast('✅ 수정됨');
+}
+
+function renderVendorList(){
+  const q = (document.getElementById('vendorSearch')?.value||'').toLowerCase();
+  const filtered = vendors.filter(v=>!q || v.name.toLowerCase().includes(q) || (v.addr||'').toLowerCase().includes(q) || (v.phones||[]).some(p=>p.number.includes(q)||p.label.toLowerCase().includes(q)));
+  document.getElementById('vendorCount').textContent = vendors.length;
+  const list = document.getElementById('vendorList');
+  if(!filtered.length){
+    list.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">${q?'검색 결과가 없습니다':'등록된 업체가 없습니다'}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(v=>{
+    const phones = (v.phones||[]).filter(p=>p.number);
+    const firstPhone = phones[0];
+    return `<div class="vendor-card" onclick="openVendorDetail('${v.name.replace(/'/g,"\\'")}')">
+      <div class="vendor-card-info">
+        <div class="vendor-card-name">${esc(v.name)}</div>
+        <div class="vendor-card-detail">
+          ${firstPhone ? `📞 ${firstPhone.label?firstPhone.label+' ':''}${firstPhone.number}${phones.length>1?` 외 ${phones.length-1}개`:''}` : ''}
+          ${v.addr ? `<br>📍 ${esc(v.addr)}` : ''}
+          ${v.memo ? `<br>📝 ${esc(v.memo)}` : ''}
+        </div>
+      </div>
+      <div style="color:var(--text3);font-size:18px;align-self:center">›</div>
+    </div>`;
+  }).join('');
+}
+
+function vendorAutoComplete(val){
+  const dropdown = document.getElementById('vendorDropdown');
+  const q = val.toLowerCase();
+  const filtered = vendors.filter(v=>v.name.toLowerCase().includes(q));
+  if(!filtered.length){
+    dropdown.style.display='none'; return;
+  }
+  dropdown.innerHTML = filtered.map(v=>{
+    const phones = (v.phones||[]).filter(p=>p.number);
+    const info = [phones.map(p=>(p.label?p.label+' ':'')+p.number).join(' / '), v.addr].filter(Boolean).join(' · ');
+    return `<div class="vendor-option" onmousedown="selectVendor('${v.name.replace(/'/g,"\\'")}')">
+      <span class="vendor-option-name">${esc(v.name)}</span>
+      ${info?`<span class="vendor-option-info">${esc(info)}</span>`:''}
+    </div>`;
+  }).join('');
+  dropdown.style.display='block';
+}
+
+function selectVendor(name){
+  document.getElementById('fVendor').value = name;
+  document.getElementById('vendorDropdown').style.display='none';
+}
+
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#fVendor') && !e.target.closest('#vendorDropdown')){
+    const dd = document.getElementById('vendorDropdown');
+    if(dd) dd.style.display='none';
+  }
+});
+
+// ── 클립보드 이미지 붙여넣기 (Ctrl+V) ───────────────
+let isPasting = false;
+document.addEventListener('paste', async e => {
+  if (!document.getElementById('sheet').classList.contains('open')) return;
+  const items = Array.from(e.clipboardData.items).filter(i => i.type.startsWith('image/'));
+  if (!items.length) return;
+  if (isPasting) return;
+  isPasting = true;
+  e.preventDefault();
+  showToast('📋 이미지 붙여넣는 중...');
+  const files = items.map(i => i.getAsFile());
+  const compressed = await Promise.all(files.map(f => compressImage(f)));
+  pendingImgs.push(...compressed);
+  renderPreview();
+  showToast(`✅ ${files.length}장 붙여넣기 완료`);
+  setTimeout(() => isPasting = false, 500);
+});
+
+// ── 공유 기능 (구글 드라이브 사진 링크) ───────────────
+async function shareEntry(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+
+  const dp = e.date ? e.date.replace(/^\d{4}-/,'').replace('-','월 ')+'일' : '';
+  const imgs = e.imgs || [];
+  const captions = e.captions || [];
+
+  // 드라이브 연결 여부 확인
+  if(!driveConnected && imgs.length > 0){
+    showToast('사진 링크 공유는 구글 드라이브 연결 후 가능합니다');
+  }
+
+  // 공유 팝업 먼저 표시
+  const popup = document.createElement('div');
+  popup.className = 'share-popup';
+  popup.id = 'sharePopup';
+  popup.innerHTML = `
+    <div class="share-box">
+      <h3>📤 업무 내용 공유</h3>
+      <div id="shareStatus" style="text-align:center;padding:16px;color:var(--text3);font-size:13px">
+        ${imgs.length > 0 && driveConnected ? '📷 사진을 드라이브에 업로드 중...' : '공유 내용 준비 중...'}
+      </div>
+      <div id="shareTextBox" class="share-text" style="display:none"></div>
+      <div class="share-btns" id="shareBtns" style="display:none"></div>
+    </div>`;
+  popup.addEventListener('click', ev => { if(ev.target===popup) popup.remove(); });
+  document.body.appendChild(popup);
+
+  // 사진 드라이브 업로드 후 링크 생성
+  let photoLinks = [];
+  if(imgs.length > 0 && driveConnected){
+    showToast('📷 사진 업로드 중...');
+    photoLinks = await uploadPhotosToDrive(e, imgs, captions);
+  }
+
+  // 공유 텍스트 생성
+  let text = `📋 업무일지\n━━━━━━━━━━━━━━\n`;
+  text += `📅 날짜: ${dp}\n`;
+  if(e.vendor) text += `🏢 거래처: ${e.vendor}\n`;
+  text += `📝 작업내용: ${e.work}\n`;
+  if(e.note) text += `💬 비고: ${e.note}\n`;
+  if(e.alarm) text += `🔔 알림: ${e.alarm.replace(/^\d{4}-/,'').replace('-','월 ')+'일'}\n`;
+  if(photoLinks.length){
+    text += `\n📷 사진 (${photoLinks.length}장)\n`;
+    photoLinks.forEach((link,i)=>{
+      const cap = captions[i] ? ` [${captions[i]}]` : '';
+      text += `${i+1}.${cap} ${link}\n`;
+    });
+  } else if(imgs.length){
+    text += `📷 사진: ${imgs.length}장 (드라이브 미연결)\n`;
+  }
+
+  // 팝업 업데이트
+  const statusEl = document.getElementById('shareStatus');
+  const textBox = document.getElementById('shareTextBox');
+  const btns = document.getElementById('shareBtns');
+  if(statusEl) statusEl.style.display='none';
+  if(textBox){ textBox.style.display='block'; textBox.textContent=text; }
+  if(btns){
+    btns.style.display='grid';
+    btns.innerHTML = `
+      <button class="share-btn kakao" onclick="shareCopyAndOpen('kakao',\`${text.replace(/`/g,"'")}\`)">💬 카카오톡</button>
+      <button class="share-btn sms" onclick="shareSMS(\`${text.replace(/`/g,"'")}\`)">📱 문자</button>
+      <button class="share-btn copy" onclick="shareCopy(\`${text.replace(/`/g,"'")}\`)">📋 클립보드 복사</button>
+      <button class="share-btn cancel" onclick="document.getElementById('sharePopup').remove()">취소</button>`;
+  }
+}
+
+// 사진을 드라이브에 개별 파일로 업로드하고 공유 링크 반환
+async function uploadPhotosToDrive(entry, imgs, captions){
+  const links = [];
+  // 드라이브에 폴더 먼저 생성 (없으면)
+  let folderId = localStorage.getItem('worklog_photo_folder');
+  if(!folderId){
+    try{
+      const res = await fetch('https://www.googleapis.com/drive/v3/files',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+driveToken,'Content-Type':'application/json'},
+        body: JSON.stringify({name:'업무일지_사진', mimeType:'application/vnd.google-apps.folder'})
+      });
+      const data = await res.json();
+      folderId = data.id;
+      localStorage.setItem('worklog_photo_folder', folderId);
+    } catch(e){ return []; }
+  }
+
+  for(let i=0; i<imgs.length; i++){
+    try{
+      const imgData = imgs[i];
+      const cap = captions[i] || '';
+      const fname = `${entry.date}_${entry.vendor||'업무'}_${i+1}${cap?'_'+cap:''}.jpg`;
+
+      // base64 → blob
+      const res2 = await fetch(imgData);
+      const blob = await res2.blob();
+
+      // 드라이브에 업로드
+      const meta = {name: fname, parents:[folderId]};
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)],{type:'application/json'}));
+      form.append('file', blob);
+      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+        method:'POST', headers:{'Authorization':'Bearer '+driveToken}, body:form
+      });
+      const fileData = await uploadRes.json();
+
+      // 공개 링크 설정
+      await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`,{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+driveToken,'Content-Type':'application/json'},
+        body: JSON.stringify({role:'reader', type:'anyone'})
+      });
+
+      // 공유 링크
+      links.push(`https://drive.google.com/file/d/${fileData.id}/view`);
+    } catch(e){ links.push('(업로드 실패)'); }
+  }
+  return links;
+}
+
+function shareCopyAndOpen(type, text){
+  navigator.clipboard.writeText(text).then(()=>{
+    showToast('📋 복사됨! 카카오톡에 붙여넣기 하세요');
+    if(/Android|iPhone/i.test(navigator.userAgent)){
+      setTimeout(()=>{ window.location.href='kakaolink://'; }, 500);
+    }
+  });
+  document.getElementById('sharePopup')?.remove();
+}
+
+function shareSMS(text){
+  window.location.href = `sms:?body=${encodeURIComponent(text)}`;
+  document.getElementById('sharePopup')?.remove();
+}
+
+function shareCopy(text){
+  navigator.clipboard.writeText(text).then(()=>{
+    showToast('📋 클립보드에 복사됨');
+    document.getElementById('sharePopup')?.remove();
+  }).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value=text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('📋 복사됨');
+    document.getElementById('sharePopup')?.remove();
+  });
+}
+
+// ── Service Worker ────────────────────────────────
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+
+// ── Start ─────────────────────────────────────────
+loadData();
+loadVendors();
+renderCal();
+render();
+
+// 이전에 연결했으면 자동 재연결
+if(localStorage.getItem('worklog_drive_connected')){
+  // Google GSI 로드 후 자동 로그인 시도
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if(!driveConnected && typeof google !== 'undefined'){
+        setDriveBar('syncing', '자동 재연결 중...');
+        driveLogin();
+      }
+    }, 1000);
+  });
+}
+</script>
+</body>
+</html>
